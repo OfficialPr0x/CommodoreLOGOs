@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commodore 64 Terminal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: monospace;
+        }
+
+        .monitor {
+            background-color: #666;
+            width: 800px;
+            height: 600px;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .screen {
+            background-color: #3c1b7a;
+            height: calc(100% - 40px);
+            border-radius: 5px;
+            padding: 20px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+        }
+
+        .screen::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(
+                circle at center,
+                transparent 0%,
+                rgba(0, 0, 0, 0.3) 100%
+            );
+            pointer-events: none;
+        }
+
+        .content {
+            color: #6076c5;
+            font-size: 16px;
+            line-height: 1.4;
+            text-shadow: 0 0 5px rgba(96, 118, 197, 0.5);
+        }
+
+        .input-line {
+            display: flex;
+            margin-top: 10px;
+        }
+
+        .prompt {
+            color: #6076c5;
+            margin-right: 8px;
+        }
+
+        #userInput {
+            background: transparent;
+            border: none;
+            color: #6076c5;
+            font-family: monospace;
+            font-size: 16px;
+            flex-grow: 1;
+            outline: none;
+        }
+
+        .power-button {
+            position: absolute;
+            right: 30px;
+            top: 10px;
+            width: 20px;
+            height: 20px;
+            background-color: #444;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .power-led {
+            position: absolute;
+            right: 60px;
+            top: 12px;
+            width: 16px;
+            height: 16px;
+            background-color: #32cd32;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #32cd32;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #3c1b7a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #6076c5;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="monitor">
+        <div class="power-button"></div>
+        <div class="power-led"></div>
+        <div class="screen">
+            <div class="content" id="output">
+                **** COMMODORE 64 BASIC V2 ****<br>
+                64K RAM SYSTEM  38911 BASIC BYTES FREE<br>
+                READY.<br>
+            </div>
+            <div class="input-line">
+                <span class="prompt">READY.</span>
+                <input type="text" id="userInput" autofocus>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const commands = {
+            help: 'Available commands: help, clear, list, run, load, save, basic, sys, peek, poke, dir, type konami',
+            clear: () => document.getElementById('output').innerHTML = '',
+            list: 'No program in memory.',
+            run: 'No program to run.',
+            load: 'PRESS PLAY ON TAPE\nOK\nSEARCHING\nLOADING\nREADY.',
+            save: 'PRESS RECORD & PLAY ON TAPE\nOK\nSAVING\nREADY.',
+            basic: 'Already in BASIC mode.',
+            sys: 'SYS command needs an address parameter.',
+            peek: 'PEEK command needs an address parameter.',
+            poke: 'POKE command needs address and value parameters.',
+            dir: 'LOADING DIRECTORY\n0 "DISK NAME" DN 2A\n0 FILES.',
+        };
+
+        let konamiSequence = '';
+        const konamiCode = 'upupdowndownleftrightleftrightba';
+        let secretsFound = 0;
+
+        const addOutput = (text) => {
+            const output = document.getElementById('output');
+            output.innerHTML += text + '<br>';
+            output.scrollTop = output.scrollHeight;
+        };
+
+        document.getElementById('userInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const input = e.target.value.toLowerCase().trim();
+                addOutput(`>${input}`);
+
+                if (input === 'konami') {
+                    addOutput('Try using arrow keys, B, and A...');
+                } else if (input === '42') {
+                    addOutput('THE ANSWER TO LIFE, THE UNIVERSE, AND EVERYTHING!');
+                    secretsFound++;
+                } else if (input === 'hello') {
+                    addOutput('HELLO, HUMAN. SHALL WE PLAY A GAME?');
+                    secretsFound++;
+                } else if (input === 'matrix') {
+                    document.querySelector('.screen').style.backgroundColor = '#000';
+                    document.querySelector('.content').style.color = '#00ff00';
+                    addOutput('WAKE UP, NEO...');
+                    secretsFound++;
+                } else {
+                    const result = commands[input];
+                    if (result) {
+                        addOutput(typeof result === 'function' ? result() : result);
+                    } else {
+                        addOutput('?SYNTAX ERROR');
+                    }
+                }
+
+                e.target.value = '';
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            const keyMap = {
+                'ArrowUp': 'up',
+                'ArrowDown': 'down',
+                'ArrowLeft': 'left',
+                'ArrowRight': 'right',
+                'b': 'b',
+                'a': 'a'
+            };
+
+            const key = keyMap[e.key];
+            if (key) {
+                konamiSequence += key;
+                if (konamiSequence.length > konamiCode.length) {
+                    konamiSequence = konamiSequence.substring(1);
+                }
+                
+                if (konamiSequence === konamiCode) {
+                    addOutput('KONAMI CODE ACTIVATED! 30 LIVES GRANTED!');
+                    gsap.to('.screen', {
+                        backgroundColor: '#ff0000',
+                        duration: 0.2,
+                        yoyo: true,
+                        repeat: 3
+                    });
+                    konamiSequence = '';
+                    secretsFound++;
+                }
+            }
+        });
+
+        document.querySelector('.power-button').addEventListener('click', () => {
+            const led = document.querySelector('.power-led');
+            const screen = document.querySelector('.screen');
+            
+            if (led.style.backgroundColor === 'red') {
+                led.style.backgroundColor = '#32cd32';
+                led.style.boxShadow = '0 0 10px #32cd32';
+                screen.style.display = 'block';
+            } else {
+                led.style.backgroundColor = 'red';
+                led.style.boxShadow = '0 0 10px red';
+                screen.style.display = 'none';
+            }
+        });
+
+        setInterval(() => {
+            const cursor = document.querySelector('.prompt');
+            cursor.style.visibility = cursor.style.visibility === 'hidden' ? 'visible' : 'hidden';
+        }, 500);
+    </script>
+</body>
+</html>
